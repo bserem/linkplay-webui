@@ -816,9 +816,21 @@
       const r = await fetch(apiUrl(s.ip, 'getPlayerStatus'), { signal: AbortSignal.timeout(STATUS_TIMEOUT) });
       text = await r.text();
     } catch (e) {
-      const isCors = e instanceof TypeError;
-      setConnected(id, isCors ? 'cors' : 'error');
-      if (isCors) document.getElementById('corsBanner').classList.add('show');
+      if (e instanceof TypeError) {
+        // Both CORS blocks and offline devices throw TypeError — probe reachability
+        let reachable = false;
+        try {
+          await fetch(apiUrl(s.ip, 'getPlayerStatus'), {
+            mode: 'no-cors',
+            signal: AbortSignal.timeout(2000)
+          });
+          reachable = true;
+        } catch {}
+        setConnected(id, reachable ? 'cors' : 'error');
+        if (reachable) document.getElementById('corsBanner').classList.add('show');
+      } else {
+        setConnected(id, 'error');
+      }
       return;
     }
 
