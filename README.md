@@ -21,9 +21,18 @@ A single-file browser interface for controlling LinkPlay-based Wi-Fi speakers â€
 
 ## Usage
 
+### Local
+
 Download `index.html` and open it in a browser. Enter each speaker's local IP address and click **+ Add Speaker**.
 
 That's it â€” no build step, no server required.
+
+### Online on GitHub Pages
+
+Visit http://lpui.srm.gr/ and try it out, or use it as your daily driver.
+
+CAVEATS: The WebUI only works over `http` and not `https` as the speakers themselves in your local network do not
+have `https`. **Browsers block HTTP requests from HTTPS pages (mixed content). There's no easy/singlefile way around this.**
 
 ## CORS limitation
 
