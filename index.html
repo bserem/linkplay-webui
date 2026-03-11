@@ -169,6 +169,22 @@
     .speaker-meta  { display: flex; align-items: center; gap: 6px; }
     .speaker-ip    { font-size: 0.8rem; color: var(--text-dim); font-family: monospace; }
 
+    /* ── Footer ── */
+    footer {
+      margin-top: 32px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+      font-size: 0.78rem;
+      color: var(--text-dim);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    footer a { color: var(--text-dim); text-decoration: none; }
+    footer a:hover { color: var(--text); }
+
     /* ── Card body ── */
     .speaker-body {
       padding: 12px 14px;
@@ -599,6 +615,11 @@
 </div>
 
 <div id="toast" role="status" aria-live="polite"></div>
+
+<footer>
+  <span>© 2026 <a href="https://www.drupal.org/u/bserem" target="_blank" rel="noopener noreferrer">Bill Seremetis</a> — MIT License</span>
+  <a href="https://github.com/bserem/linkplay-webui" target="_blank" rel="noopener noreferrer">github.com/bserem/linkplay-webui</a>
+</footer>
 
 <script>
   // ── Constants ─────────────────────────────────────────────────────────
