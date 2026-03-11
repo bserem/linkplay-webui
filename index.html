@@ -603,7 +603,8 @@
 <script>
   // ── Constants ─────────────────────────────────────────────────────────
   const STORAGE_KEY = 'linkplay_v2';
-  const POLL_MS     = 8000;
+  const POLL_ACTIVE_MS = 60000;   // playing / loading
+  const POLL_IDLE_MS   = 300000;  // stopped, paused, or unreachable
   const CMD_TIMEOUT = 4000;
   const STATUS_TIMEOUT = 5000;
 
@@ -855,13 +856,25 @@
     stopPolling(id);
     setConnected(id, 'connecting');
     fetchStatus(id);
-    speakerTimers[id] = setInterval(() => fetchStatus(id), POLL_MS);
   }
 
   function stopPolling(id) {
-    clearInterval(speakerTimers[id]);
+    clearTimeout(speakerTimers[id]);
     delete speakerTimers[id];
   }
+
+  function schedulePoll(id, delay) {
+    clearTimeout(speakerTimers[id]);
+    speakerTimers[id] = setTimeout(() => fetchStatus(id), delay);
+  }
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      speakers.forEach(s => stopPolling(s.id));
+    } else {
+      speakers.forEach(s => schedulePoll(s.id, 0));
+    }
+  });
 
   // ── API ───────────────────────────────────────────────────────────────
   function apiUrl(ip, command) {
@@ -876,7 +889,7 @@
       const label = command.startsWith('setPlayerCmd:')
         ? command.split(':').slice(1).join(':') : command;
       toast(`${s.name}: ✓ ${label}`, 'ok');
-      setTimeout(() => fetchStatus(id), 800);
+      schedulePoll(id, 800);
     } catch (e) {
       toast(`${s.name}: ${e.message}`, 'err');
     }
@@ -906,6 +919,7 @@
       } else {
         setConnected(id, 'error');
       }
+      schedulePoll(id, POLL_IDLE_MS);
       return;
     }
 
@@ -968,6 +982,10 @@
       st.infoFetched = true;
       fetchDeviceInfo(id);
     }
+
+    // Adaptive poll: fast when active, slow when idle
+    const isActive = status === 'play' || status === 'load';
+    schedulePoll(id, isActive ? POLL_ACTIVE_MS : POLL_IDLE_MS);
   }
 
   async function fetchDeviceInfo(id) {
