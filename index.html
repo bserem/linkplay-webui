@@ -383,6 +383,32 @@
     .preset-btn:hover  { border-color: var(--accent); color: var(--accent); }
     .preset-btn:active { transform: scale(0.94); background: var(--accent-dim); }
 
+    /* ── Stream URL ── */
+    .url-row { display: flex; gap: 6px; align-items: center; }
+    .url-input {
+      flex: 1;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: calc(var(--radius) - 2px);
+      color: var(--text);
+      font-size: 0.78rem;
+      padding: 6px 8px;
+      outline: none;
+    }
+    .url-input:focus { border-color: var(--accent); }
+    .url-play-btn {
+      background: var(--accent-dim);
+      border: 1px solid var(--accent);
+      border-radius: calc(var(--radius) - 2px);
+      color: var(--accent);
+      font-size: 0.78rem;
+      padding: 6px 10px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s;
+    }
+    .url-play-btn:hover { background: var(--accent); color: #fff; }
+
     /* ── Card footer ── */
     .card-footer {
       display: flex;
@@ -655,6 +681,13 @@
       <button class="play-btn danger" onclick="speakerCmd('${id}', 'setPlayerCmd:stop')">⏹ Stop</button>
     </div>
 
+    <div class="section-label">Stream URL</div>
+    <div class="url-row">
+      <input class="url-input" id="urlInput-${id}" type="url"
+             placeholder="http://stream.example.com/radio-128" />
+      <button class="url-play-btn" onclick="playUrl('${id}')">▶ Play</button>
+    </div>
+
     <div class="section-label">Source</div>
     <div class="source-grid">
       <button class="source-btn" id="src-${id}-wifi"      onclick="switchSource('${id}', 'wifi')">
@@ -890,6 +923,19 @@
     st.muted = !st.muted;
     document.getElementById('muteBtn-' + id).textContent = st.muted ? '🔇' : '🔊';
     speakerCmd(id, `setPlayerCmd:mute:${st.muted ? 1 : 0}`);
+  }
+
+  // ── Stream URL ────────────────────────────────────────────────────────
+  function isValidUrl(v) {
+    try { const p = new URL(v).protocol; return p === 'http:' || p === 'https:'; }
+    catch { return false; }
+  }
+
+  function playUrl(id) {
+    const input = document.getElementById('urlInput-' + id);
+    const url = input.value.trim();
+    if (!isValidUrl(url)) { input.focus(); return; }
+    speakerCmd(id, 'setPlayerCmd:play:' + url);
   }
 
   // ── Source ────────────────────────────────────────────────────────────
