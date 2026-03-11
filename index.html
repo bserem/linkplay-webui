@@ -165,6 +165,7 @@
     }
     .speaker-title { display: flex; align-items: center; gap: 10px; }
     .speaker-name  { font-weight: 600; font-size: 1rem; }
+    .device-name   { font-size: 0.72rem; color: var(--text-dim); display: block; margin-top: -2px; }
     .speaker-meta  { display: flex; align-items: center; gap: 6px; }
     .speaker-ip    { font-size: 0.8rem; color: var(--text-dim); font-family: monospace; }
 
@@ -672,7 +673,7 @@
   function renderAll() {
     document.getElementById('speakerList').innerHTML = '';
     speakers.forEach(s => {
-      speakerState[s.id] = { vol: 50, muted: false };
+      speakerState[s.id] = { vol: 50, muted: false, infoFetched: false };
       appendCard(s);
       startPolling(s.id);
     });
@@ -700,7 +701,10 @@
   <div class="speaker-header">
     <div class="speaker-title">
       <span class="conn-badge" id="badge-${id}">Offline</span>
-      <span class="speaker-name" id="name-${id}">${e(s.name)}</span>
+      <div>
+        <span class="speaker-name" id="name-${id}">${e(s.name)}</span>
+        <span class="device-name"  id="device-name-${id}"></span>
+      </div>
     </div>
     <div class="speaker-meta">
       <span class="speaker-ip" id="ip-label-${id}">${e(s.ip)}</span>
@@ -817,7 +821,7 @@
     const s = { id: uid(), name, ip, presetCount: 4 };
     speakers.push(s);
     saveState();
-    speakerState[s.id] = { vol: 50, muted: false };
+    speakerState[s.id] = { vol: 50, muted: false, infoFetched: false };
     appendCard(s);
     startPolling(s.id);
     updateUI();
@@ -959,6 +963,35 @@
       document.getElementById(`src-${id}-wifi`)?.classList.add('active');
     }
 
+    // Fetch device info once per session
+    if (!st.infoFetched) {
+      st.infoFetched = true;
+      fetchDeviceInfo(id);
+    }
+  }
+
+  async function fetchDeviceInfo(id) {
+    const s = speakers.find(s => s.id === id);
+    if (!s) return;
+    try {
+      const r    = await fetch(apiUrl(s.ip, 'getStatus'), { signal: AbortSignal.timeout(STATUS_TIMEOUT) });
+      const text = await r.text();
+      const data = JSON.parse(text.replace(/,\s*([}\]])/g, '$1'));
+
+      // Preset slot count
+      const key = parseInt(data.preset_key ?? data.PresetKey ?? -1);
+      if (key > 0 && key !== s.presetCount) {
+        s.presetCount = key <= 4 ? 4 : key <= 6 ? 6 : 10;
+        saveState();
+        buildPresets(id);
+      }
+
+      // Device name
+      const rawName = data.DeviceName ?? data.devicename ?? '';
+      const devName = hexToStr(rawName) !== '—' ? hexToStr(rawName) : rawName;
+      const nameEl  = document.getElementById('device-name-' + id);
+      if (nameEl && devName && devName !== '—') nameEl.textContent = devName;
+    } catch (_) { /* silent — CORS or offline */ }
   }
 
   // ── Connection badge ──────────────────────────────────────────────────
