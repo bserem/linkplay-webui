@@ -518,6 +518,9 @@
     #toast.err  { border-left: 3px solid var(--danger); }
 
     /* ── Responsive ── */
+    @media (max-width: 960px) {
+      #speakerList { grid-template-columns: repeat(2, 1fr) !important; }
+    }
     @media (max-width: 600px) {
       #speakerList { grid-template-columns: 1fr !important; }
       .source-grid { grid-template-columns: repeat(2, 1fr); }
