@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LinkPlay Controller</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f0f13;
+      --surface: #1a1a24;
+      --surface2: #22222f;
+      --border: #2e2e40;
+      --accent: #6c63ff;
+      --accent-dim: #3d3880;
+      --text: #e8e8f0;
+      --text-dim: #888899;
+      --success: #4ade80;
+      --warning: #facc15;
+      --danger: #f87171;
+      --radius: 12px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 20px;
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    /* ── Header ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    header h1 { font-size: 1.4rem; font-weight: 700; letter-spacing: -0.02em; }
+    header h1 span { color: var(--accent); }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.88rem;
+      font-weight: 500;
+      transition: opacity 0.15s, transform 0.1s;
+      user-select: none;
+    }
+    .btn:active { transform: scale(0.96); }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { opacity: 0.88; }
+    .btn-ghost { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+    .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+    .icon-btn {
+      background: none;
+      border: 1px solid transparent;
+      color: var(--text-dim);
+      border-radius: 6px;
+      padding: 4px 7px;
+      cursor: pointer;
+      font-size: 0.95rem;
+      transition: all 0.15s;
+    }
+    .icon-btn:hover { border-color: var(--border); color: var(--text); }
+    .icon-btn.danger:hover { border-color: var(--danger); color: var(--danger); }
+
+    .btn-link {
+      background: none;
+      border: none;
+      color: var(--text-dim);
+      cursor: pointer;
+      font-size: 0.78rem;
+      padding: 0;
+    }
+    .btn-link:hover { color: var(--accent); }
+
+    /* ── Preset count toggle ── */
+    .preset-count-toggle {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: var(--surface2);
+      padding: 3px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+    .preset-count-btn {
+      padding: 3px 10px;
+      border-radius: 6px;
+      border: none;
+      background: transparent;
+      color: var(--text-dim);
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 500;
+      transition: all 0.15s;
+    }
+    .preset-count-btn.active { background: var(--accent); color: #fff; }
+
+    /* ── CORS banner ── */
+    #corsBanner {
+      display: none;
+      background: #2a1f00;
+      border: 1px solid #92400e;
+      border-radius: var(--radius);
+      padding: 14px 18px;
+      margin-bottom: 18px;
+      font-size: 0.87rem;
+      line-height: 1.6;
+    }
+    #corsBanner strong { color: var(--warning); display: block; margin-bottom: 4px; }
+    #corsBanner a { color: #fbbf24; }
+    #corsBanner.show { display: block; }
+    .cors-dismiss {
+      float: right;
+      background: none;
+      border: none;
+      color: var(--text-dim);
+      cursor: pointer;
+      font-size: 1rem;
+      padding: 0 0 4px 10px;
+    }
+
+    /* ── Speaker list ── */
+    #speakerList { display: grid; gap: 16px; grid-template-columns: 1fr; }
+
+    /* ── Empty state ── */
+    #emptyState {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-dim);
+    }
+    #emptyState p { margin-bottom: 16px; font-size: 1rem; }
+
+    /* ── Speaker card ── */
+    .speaker-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .speaker-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .speaker-title { display: flex; align-items: center; gap: 10px; }
+    .speaker-name  { font-weight: 600; font-size: 1rem; }
+    .speaker-meta  { display: flex; align-items: center; gap: 6px; }
+    .speaker-ip    { font-size: 0.8rem; color: var(--text-dim); font-family: monospace; }
+
+    /* ── Card body ── */
+    .speaker-body {
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .section-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-dim);
+      margin-bottom: -6px;
+    }
+
+    /* ── Presets section label row ── */
+    .presets-label-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: -6px;
+    }
+    .presets-label-row .section-label { margin-bottom: 0; }
+
+    /* ── Now playing ── */
+    .now-playing {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .np-status { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    .np-mode   { font-size: 0.8rem; color: var(--text-dim); }
+    .np-track  { display: flex; flex-direction: column; align-items: flex-end; min-width: 0; }
+    .np-title  {
+      font-size: 0.9rem; font-weight: 500;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px;
+    }
+    .np-artist {
+      font-size: 0.8rem; color: var(--text-dim);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px;
+    }
+
+    /* ── Badges ── */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .badge-play  { background: #14532d; color: var(--success); }
+    .badge-pause { background: #451a03; color: var(--warning); }
+    .badge-stop  { background: #2d1111; color: var(--danger); }
+    .badge-load  { background: #1e1b4b; color: #a5b4fc; }
+
+    /* ── Connection badge ── */
+    .conn-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      transition: all 0.3s;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .conn-badge::before {
+      content: '';
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+      flex-shrink: 0;
+    }
+    .conn-badge.connected  { border-color: var(--success); color: var(--success); background: #0d2e1a; }
+    .conn-badge.error      { border-color: var(--danger);  color: var(--danger);  background: #2d1111; }
+    .conn-badge.connecting { border-color: var(--warning); color: var(--warning); background: #2a1f00; }
+
+    /* ── Volume ── */
+    .vol-section { display: flex; flex-direction: column; gap: 8px; }
+    .vol-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .vol-display {
+      font-size: 2.2rem;
+      font-weight: 700;
+      letter-spacing: -0.04em;
+      line-height: 1;
+      min-width: 44px;
+      text-align: right;
+    }
+    .vol-btns { display: flex; gap: 5px; }
+    .vol-btn {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 8px;
+      width: 40px; height: 40px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, transform 0.1s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .vol-btn:hover  { background: var(--accent-dim); border-color: var(--accent); }
+    .vol-btn:active { transform: scale(0.93); }
+
+    .vol-slider {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 6px;
+      background: var(--border);
+      border-radius: 3px;
+      outline: none;
+    }
+    .vol-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      background: var(--accent);
+      cursor: pointer;
+    }
+    .vol-slider::-moz-range-thumb {
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      background: var(--accent);
+      cursor: pointer;
+      border: none;
+    }
+
+    /* ── Playback ── */
+    .playback-controls { display: flex; gap: 8px; flex-wrap: wrap; }
+    .play-btn {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      flex: 1;
+      justify-content: center;
+      min-width: 70px;
+    }
+    .play-btn:hover        { border-color: var(--accent); color: var(--accent); }
+    .play-btn.danger       { border-color: #7f1d1d; color: var(--danger); }
+    .play-btn.danger:hover { border-color: var(--danger); }
+    .play-btn:active       { transform: scale(0.96); }
+
+    /* ── Source ── */
+    .source-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 5px;
+    }
+    .source-btn {
+      background: var(--surface2);
+      border: 2px solid var(--border);
+      color: var(--text);
+      padding: 5px 4px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.7rem;
+      font-weight: 500;
+      text-align: center;
+      transition: all 0.15s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+    .source-btn .icon     { display: flex; align-items: center; justify-content: center; }
+    .source-btn .icon svg { width: 16px; height: 16px; }
+    .source-btn:hover     { border-color: var(--accent); color: var(--accent); }
+    .source-btn:active    { transform: scale(0.96); }
+    .source-btn.active    { border-color: var(--accent); background: var(--accent-dim); color: #fff; }
+
+    /* ── Presets ── */
+    .preset-grid { display: grid; gap: 5px; }
+    .preset-grid.count-4  { grid-template-columns: repeat(4,  1fr); }
+    .preset-grid.count-6  { grid-template-columns: repeat(6,  1fr); }
+    .preset-grid.count-10 { grid-template-columns: repeat(5,  1fr); }
+
+    .preset-btn {
+      background: var(--surface2);
+      border: 2px solid var(--border);
+      color: var(--text);
+      padding: 6px 4px;
+      border-radius: 7px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 700;
+      text-align: center;
+      transition: all 0.15s;
+    }
+    .preset-btn:hover  { border-color: var(--accent); color: var(--accent); }
+    .preset-btn:active { transform: scale(0.94); background: var(--accent-dim); }
+
+    /* ── Card footer ── */
+    .card-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 4px;
+      border-top: 1px solid var(--border);
+    }
+    .last-updated { font-size: 0.75rem; color: var(--text-dim); }
+
+    /* ── Modal ── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(4px);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      width: 100%;
+      max-width: 360px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .modal-box h2 { font-size: 1.1rem; font-weight: 600; }
+    .modal-box label {
+      font-size: 0.78rem;
+      color: var(--text-dim);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: -8px;
+    }
+    .modal-box input {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 9px 12px;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      width: 100%;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .modal-box input:focus { border-color: var(--accent); }
+    .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px; }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed;
+      bottom: 24px; right: 24px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 10px 16px;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      max-width: 320px;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity 0.2s, transform 0.2s;
+      pointer-events: none;
+      z-index: 999;
+    }
+    #toast.show { opacity: 1; transform: translateY(0); }
+    #toast.ok   { border-left: 3px solid var(--success); }
+    #toast.err  { border-left: 3px solid var(--danger); }
+
+    /* ── Responsive ── */
+    @media (max-width: 600px) {
+      #speakerList { grid-template-columns: 1fr !important; }
+      .source-grid { grid-template-columns: repeat(2, 1fr); }
+      .preset-grid.count-10 { grid-template-columns: repeat(5, 1fr); }
+      .preset-grid.count-6  { grid-template-columns: repeat(3, 1fr); }
+      .np-track { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Link<span>Play</span></h1>
+  <button class="btn btn-primary" onclick="openModal()">+ Add Speaker</button>
+</header>
+
+<div id="corsBanner">
+  <button class="cors-dismiss" onclick="this.parentElement.classList.remove('show')">✕</button>
+  <strong>⚠ CORS blocked — live status unavailable</strong>
+  The browser blocks responses from the speaker (missing CORS headers). Controls still work.
+  Install a browser extension to enable status:
+  <br><br>
+  &bull; Firefox: <a href="https://addons.mozilla.org/en-US/firefox/addon/cors-everywhere/" target="_blank" rel="noopener noreferrer">CORS Everywhere</a><br>
+  &bull; Chrome / Edge: <a href="https://chrome.google.com/webstore/detail/allow-cors-access-control/lhobafahddgcelffkeicbaginigeejlf" target="_blank" rel="noopener noreferrer">Allow CORS</a>
+</div>
+
+<div id="speakerList"></div>
+
+<div id="emptyState">
+  <p style="font-size:1.1rem;margin-bottom:8px">No speakers added yet</p>
+  <p style="margin-bottom:20px;font-size:0.9rem">Add a speaker to get started</p>
+  <button class="btn btn-primary" onclick="openModal()">+ Add Speaker</button>
+</div>
+
+<div class="modal-overlay" id="modal" onclick="overlayClick(event)">
+  <div class="modal-box">
+    <h2 id="modalTitle">Add Speaker</h2>
+    <label for="modalName">Name</label>
+    <input id="modalName" type="text" placeholder="Living Room" spellcheck="false" autocomplete="off" />
+    <label for="modalIp">IP Address</label>
+    <input id="modalIp" type="text" placeholder="192.168.1.x" spellcheck="false" autocomplete="off" inputmode="url" />
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveModal()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+  // ── Constants ─────────────────────────────────────────────────────────
+  const STORAGE_KEY = 'linkplay_v2';
+  const POLL_MS     = 8000;
+  const CMD_TIMEOUT = 4000;
+  const STATUS_TIMEOUT = 5000;
+
+  const MODE_NAMES = {
+    0: 'Idle',   1: 'AirPlay',    2: 'DLNA',        10: 'WiFi (App)',
+    11: 'Local', 12: 'Station',   13: 'Radio',       14: 'Playlist',
+    20: 'HTTP',  21: 'HTTP Local', 30: 'Alarm',
+    40: 'Line In', 41: 'Bluetooth', 42: 'Ext Local',
+    43: 'Aux',     44: 'Aux',      50: 'Mirror',     60: 'Talk', 99: 'Slave',
+  };
+
+  // UI source key → API switchmode value (only entries that differ)
+  const SOURCE_CMD = {};
+
+  // API mode number → UI source button key
+  const MODE_TO_SOURCE = { 40: 'line-in', 41: 'bluetooth', 43: 'aux', 44: 'aux' };
+
+  const BADGE_CLASS = {
+    play: 'badge-play', pause: 'badge-pause',
+    stop: 'badge-stop', load: 'badge-load',
+  };
+
+  // ── State ─────────────────────────────────────────────────────────────
+  let speakers      = [];  // [{id, name, ip, presetCount}]  — persisted
+  let speakerState  = {};  // {id: {vol, muted}}             — runtime only
+  let speakerTimers = {};  // {id: intervalId}
+  let editingId     = null;
+
+  // ── Persistence ───────────────────────────────────────────────────────
+  function loadState() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      const data = JSON.parse(raw);
+      speakers = (data.speakers || []).filter(s => s.id && s.ip);
+      // migrate: old global presetCount → per-speaker
+      if (data.presetCount) {
+        speakers.forEach(s => { s.presetCount = s.presetCount || data.presetCount; });
+      }
+    } catch (_) {
+      speakers = [];
+    }
+  }
+
+  function saveState() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ speakers }));
+  }
+
+  function uid() {
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  }
+
+  // ── Validation ────────────────────────────────────────────────────────
+  // Accept IPv4 addresses and plain hostnames only — no schemes, paths, or ports
+  function isValidHost(value) {
+    return /^(\d{1,3}\.){3}\d{1,3}$/.test(value) ||
+           /^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*$/.test(value);
+  }
+
+  // ── Init ──────────────────────────────────────────────────────────────
+  loadState();
+  renderAll();
+
+  // ── Render ────────────────────────────────────────────────────────────
+  function renderAll() {
+    document.getElementById('speakerList').innerHTML = '';
+    speakers.forEach(s => {
+      speakerState[s.id] = { vol: 50, muted: false };
+      appendCard(s);
+      startPolling(s.id);
+    });
+    updateUI();
+  }
+
+  function appendCard(s) {
+    const el = buildCard(s);
+    if (!el) return;
+    document.getElementById('speakerList').appendChild(el);
+    buildPresets(s.id);
+  }
+
+  function buildCard(s) {
+    const frag = document.createRange().createContextualFragment(cardHTML(s));
+    return frag.firstElementChild;
+  }
+
+  function cardHTML(s) {
+    const e = escHtml;
+    const id = s.id; // always alphanumeric from uid()
+    return `
+<div class="speaker-card" id="card-${id}">
+  <div class="speaker-header">
+    <div class="speaker-title">
+      <span class="conn-badge" id="badge-${id}">Offline</span>
+      <span class="speaker-name" id="name-${id}">${e(s.name)}</span>
+    </div>
+    <div class="speaker-meta">
+      <span class="speaker-ip" id="ip-label-${id}">${e(s.ip)}</span>
+      <button class="icon-btn" onclick="openModal('${id}')" title="Edit">✎</button>
+      <button class="icon-btn danger" onclick="removeSpeaker('${id}')" title="Remove">✕</button>
+    </div>
+  </div>
+
+  <div class="speaker-body">
+
+    <div class="now-playing">
+      <div class="np-status">
+        <span id="sStatus-${id}"><span class="badge">—</span></span>
+        <span class="np-mode" id="sMode-${id}">—</span>
+      </div>
+      <div class="np-track">
+        <span class="np-title"  id="sTitle-${id}">—</span>
+        <span class="np-artist" id="sArtist-${id}">—</span>
+      </div>
+    </div>
+
+    <div class="section-label">Volume</div>
+    <div class="vol-section">
+      <div class="vol-top">
+        <span class="vol-display" id="volDisplay-${id}">—</span>
+        <div class="vol-btns">
+          <button class="vol-btn" onclick="adjustVolume('${id}', -1)" title="-1">−</button>
+          <button class="vol-btn" id="muteBtn-${id}" onclick="toggleMute('${id}')">🔊</button>
+          <button class="vol-btn" onclick="adjustVolume('${id}', 1)"  title="+1">+</button>
+        </div>
+      </div>
+      <input type="range" class="vol-slider" id="volSlider-${id}"
+             min="0" max="100" value="50"
+             oninput="sliderPreview('${id}', this.value)"
+             onchange="setVolume('${id}', this.value)" />
+    </div>
+
+    <div class="section-label">Playback</div>
+    <div class="playback-controls">
+      <button class="play-btn" onclick="speakerCmd('${id}', 'setPlayerCmd:prev')">⏮ Prev</button>
+      <button class="play-btn" onclick="speakerCmd('${id}', 'setPlayerCmd:onepause')">⏯ Play/Pause</button>
+      <button class="play-btn" onclick="speakerCmd('${id}', 'setPlayerCmd:next')">⏭ Next</button>
+      <button class="play-btn danger" onclick="speakerCmd('${id}', 'setPlayerCmd:stop')">⏹ Stop</button>
+    </div>
+
+    <div class="section-label">Source</div>
+    <div class="source-grid">
+      <button class="source-btn" id="src-${id}-wifi"      onclick="switchSource('${id}', 'wifi')">
+        <span class="icon">📶</span>WiFi
+      </button>
+      <button class="source-btn" id="src-${id}-bluetooth" onclick="switchSource('${id}', 'bluetooth')">
+        <span class="icon">🔵</span>Bluetooth
+      </button>
+      <button class="source-btn" id="src-${id}-line-in"   onclick="switchSource('${id}', 'line-in')">
+        <span class="icon"><svg viewBox="0 0 22 22" fill="none"><rect x="1" y="9" width="13" height="4" rx="2" fill="currentColor"/><circle cx="17" cy="11" r="3.5" fill="currentColor"/><rect x="5" y="9" width="1.5" height="4" rx="0.5" fill="var(--surface)"/><rect x="9" y="9" width="1.5" height="4" rx="0.5" fill="var(--surface)"/></svg></span>Line In
+      </button>
+      <button class="source-btn" id="src-${id}-aux"       onclick="switchSource('${id}', 'aux')">
+        <span class="icon"><svg viewBox="0 0 22 22" fill="none"><circle cx="11" cy="11" r="9" stroke="currentColor" stroke-width="2"/><circle cx="11" cy="11" r="5" stroke="currentColor" stroke-width="1.5"/><circle cx="11" cy="11" r="2" fill="currentColor"/></svg></span>Aux
+      </button>
+    </div>
+
+    <div class="presets-label-row">
+      <span class="section-label">Presets</span>
+      <div class="preset-count-toggle">
+        <button class="preset-count-btn" onclick="setPresetCount('${id}', 4, this)">4</button>
+        <button class="preset-count-btn" onclick="setPresetCount('${id}', 6, this)">6</button>
+        <button class="preset-count-btn" onclick="setPresetCount('${id}', 10, this)">10</button>
+      </div>
+    </div>
+    <div class="preset-grid" id="presets-${id}"></div>
+
+    <div class="card-footer">
+      <span class="last-updated" id="lastUpdated-${id}">Never refreshed</span>
+      <button class="btn-link" onclick="fetchStatus('${id}')">↻ Refresh</button>
+    </div>
+
+  </div>
+</div>`;
+  }
+
+  function updateUI() {
+    const empty = document.getElementById('emptyState');
+    const list  = document.getElementById('speakerList');
+    const n     = speakers.length;
+    empty.style.display = n === 0 ? 'block' : 'none';
+    list.style.display  = n === 0 ? 'none'  : '';
+    const cols = n <= 1 ? 1 : n === 2 ? 2 : n === 3 ? 3 : 2;
+    list.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+  }
+
+  function escHtml(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  // ── Speaker CRUD ──────────────────────────────────────────────────────
+  function addSpeaker(name, ip) {
+    const s = { id: uid(), name, ip, presetCount: 4 };
+    speakers.push(s);
+    saveState();
+    speakerState[s.id] = { vol: 50, muted: false };
+    appendCard(s);
+    startPolling(s.id);
+    updateUI();
+  }
+
+  function removeSpeaker(id) {
+    const s = speakers.find(s => s.id === id);
+    if (!s || !confirm(`Remove "${s.name}"?`)) return;
+    stopPolling(id);
+    delete speakerState[id];
+    speakers = speakers.filter(s => s.id !== id);
+    saveState();
+    document.getElementById('card-' + id)?.remove();
+    updateUI();
+  }
+
+  function updateSpeaker(id, name, ip) {
+    const s = speakers.find(s => s.id === id);
+    if (!s) return;
+    const ipChanged = s.ip !== ip;
+    s.name = name;
+    s.ip   = ip;
+    saveState();
+    document.getElementById('name-'     + id).textContent = name;
+    document.getElementById('ip-label-' + id).textContent = ip;
+    if (ipChanged) { stopPolling(id); startPolling(id); }
+  }
+
+  // ── Polling ───────────────────────────────────────────────────────────
+  function startPolling(id) {
+    stopPolling(id);
+    setConnected(id, 'connecting');
+    fetchStatus(id);
+    speakerTimers[id] = setInterval(() => fetchStatus(id), POLL_MS);
+  }
+
+  function stopPolling(id) {
+    clearInterval(speakerTimers[id]);
+    delete speakerTimers[id];
+  }
+
+  // ── API ───────────────────────────────────────────────────────────────
+  function apiUrl(ip, command) {
+    return `http://${ip}/httpapi.asp?command=${encodeURIComponent(command)}`;
+  }
+
+  async function speakerCmd(id, command) {
+    const s = speakers.find(s => s.id === id);
+    if (!s) return;
+    try {
+      await fetch(apiUrl(s.ip, command), { mode: 'no-cors', signal: AbortSignal.timeout(CMD_TIMEOUT) });
+      const label = command.startsWith('setPlayerCmd:')
+        ? command.split(':').slice(1).join(':') : command;
+      toast(`${s.name}: ✓ ${label}`, 'ok');
+      setTimeout(() => fetchStatus(id), 800);
+    } catch (e) {
+      toast(`${s.name}: ${e.message}`, 'err');
+    }
+  }
+
+  async function fetchStatus(id) {
+    const s = speakers.find(s => s.id === id);
+    if (!s) return;
+
+    let text;
+    try {
+      const r = await fetch(apiUrl(s.ip, 'getPlayerStatus'), { signal: AbortSignal.timeout(STATUS_TIMEOUT) });
+      text = await r.text();
+    } catch (e) {
+      const isCors = e instanceof TypeError;
+      setConnected(id, isCors ? 'cors' : 'error');
+      if (isCors) document.getElementById('corsBanner').classList.add('show');
+      return;
+    }
+
+    let data;
+    try {
+      // LinkPlay firmware often returns JSON with trailing commas — strip before parsing
+      data = JSON.parse(text.replace(/,\s*([}\]])/g, '$1'));
+    } catch (e) {
+      setConnected(id, 'connected');
+      console.warn(`[${s.name}] JSON parse error:`, e.message, text);
+      return;
+    }
+
+    setConnected(id, 'connected');
+    document.getElementById('lastUpdated-' + id).textContent =
+      'Updated ' + new Date().toLocaleTimeString();
+
+    const st = speakerState[id];
+
+    // Volume
+    const vol = parseInt(data.vol ?? data.Vol ?? st.vol);
+    if (!isNaN(vol)) {
+      st.vol = vol;
+      document.getElementById('volDisplay-' + id).textContent = vol;
+      document.getElementById('volSlider-'  + id).value       = vol;
+    }
+
+    // Mute
+    st.muted = data.mute === '1' || data.Mute === '1';
+    document.getElementById('muteBtn-' + id).textContent = st.muted ? '🔇' : '🔊';
+
+    // Playback status — use textContent to avoid any XSS from device response
+    const status    = (data.Status || data.status || '').toLowerCase();
+    const statusEl  = document.getElementById('sStatus-' + id);
+    const badge     = document.createElement('span');
+    badge.className = 'badge ' + (BADGE_CLASS[status] || '');
+    badge.textContent = status || '—';
+    statusEl.replaceChildren(badge);
+
+    // Mode
+    const mode = parseInt(data.Mode ?? data.mode ?? -1);
+    document.getElementById('sMode-' + id).textContent =
+      MODE_NAMES[mode] ?? (mode >= 0 ? `Mode ${mode}` : '—');
+
+    // Track info — textContent is safe
+    document.getElementById('sTitle-'  + id).textContent = hexToStr(data.Title  ?? data.title);
+    document.getElementById('sArtist-' + id).textContent = hexToStr(data.Artist ?? data.artist);
+
+    // Active source highlight
+    document.querySelectorAll(`[id^="src-${id}-"]`).forEach(b => b.classList.remove('active'));
+    const srcKey = MODE_TO_SOURCE[mode];
+    if (srcKey) {
+      document.getElementById(`src-${id}-${srcKey}`)?.classList.add('active');
+    } else if (mode >= 1 && mode <= 29) {
+      document.getElementById(`src-${id}-wifi`)?.classList.add('active');
+    }
+  }
+
+  // ── Connection badge ──────────────────────────────────────────────────
+  function setConnected(id, state) {
+    const badge = document.getElementById('badge-' + id);
+    if (!badge) return;
+    const labels = {
+      connected:  'Online',
+      error:      'Offline',
+      connecting: 'Connecting…',
+      cors:       'CORS blocked',
+    };
+    badge.className   = 'conn-badge ' + (state === 'cors' ? 'error' : state);
+    badge.textContent = labels[state] ?? state;
+  }
+
+  // ── Helpers ───────────────────────────────────────────────────────────
+  function hexToStr(hex) {
+    if (!hex || hex === 'unknown') return '—';
+    try { return decodeURIComponent(hex.replace(/(..)/g, '%$1')); }
+    catch (_) { return hex; }
+  }
+
+  // ── Volume ────────────────────────────────────────────────────────────
+  function sliderPreview(id, val) {
+    document.getElementById('volDisplay-' + id).textContent = val;
+  }
+
+  function setVolume(id, val) {
+    const v = Math.max(0, Math.min(100, parseInt(val)));
+    speakerState[id].vol = v;
+    speakerCmd(id, `setPlayerCmd:vol:${v}`);
+  }
+
+  function adjustVolume(id, delta) {
+    const st  = speakerState[id];
+    const vol = Math.max(0, Math.min(100, st.vol + delta));
+    st.vol = vol;
+    document.getElementById('volSlider-'  + id).value       = vol;
+    document.getElementById('volDisplay-' + id).textContent = vol;
+    speakerCmd(id, `setPlayerCmd:vol:${vol}`);
+  }
+
+  function toggleMute(id) {
+    const st = speakerState[id];
+    st.muted = !st.muted;
+    document.getElementById('muteBtn-' + id).textContent = st.muted ? '🔇' : '🔊';
+    speakerCmd(id, `setPlayerCmd:mute:${st.muted ? 1 : 0}`);
+  }
+
+  // ── Source ────────────────────────────────────────────────────────────
+  function switchSource(id, source) {
+    speakerCmd(id, `setPlayerCmd:switchmode:${SOURCE_CMD[source] || source}`);
+    document.querySelectorAll(`[id^="src-${id}-"]`).forEach(b => b.classList.remove('active'));
+    document.getElementById(`src-${id}-${source}`)?.classList.add('active');
+  }
+
+  // ── Presets ───────────────────────────────────────────────────────────
+  function buildPresets(id) {
+    const s    = speakers.find(s => s.id === id);
+    const grid = document.getElementById('presets-' + id);
+    if (!s || !grid) return;
+    const count = s.presetCount || 4;
+    grid.className = `preset-grid count-${count}`;
+    grid.innerHTML = '';
+    for (let i = 1; i <= count; i++) {
+      const btn       = document.createElement('button');
+      btn.className   = 'preset-btn';
+      btn.textContent = i;
+      btn.onclick     = () => speakerCmd(id, `MCUKeyShortClick:${i}`);
+      grid.appendChild(btn);
+    }
+    document.getElementById('card-' + id)
+      ?.querySelectorAll('.preset-count-btn')
+      .forEach(b => b.classList.toggle('active', parseInt(b.textContent) === count));
+  }
+
+  function setPresetCount(id, count) {
+    const s = speakers.find(s => s.id === id);
+    if (!s) return;
+    s.presetCount = count;
+    saveState();
+    buildPresets(id); // handles active button highlighting
+  }
+
+  // ── Modal ─────────────────────────────────────────────────────────────
+  function openModal(editId = null) {
+    editingId = editId;
+    const s   = editId ? speakers.find(s => s.id === editId) : null;
+    document.getElementById('modalTitle').textContent = s ? 'Edit Speaker' : 'Add Speaker';
+    document.getElementById('modalName').value        = s?.name || '';
+    document.getElementById('modalIp').value          = s?.ip   || '';
+    document.getElementById('modal').classList.add('open');
+    setTimeout(() => document.getElementById('modalName').focus(), 50);
+  }
+
+  function closeModal() {
+    document.getElementById('modal').classList.remove('open');
+    editingId = null;
+  }
+
+  function overlayClick(e) {
+    if (e.target === document.getElementById('modal')) closeModal();
+  }
+
+  function saveModal() {
+    const name = document.getElementById('modalName').value.trim() || 'Speaker';
+    const ip   = document.getElementById('modalIp').value.trim();
+    if (!ip)              { toast('Enter an IP address', 'err'); return; }
+    if (!isValidHost(ip)) { toast('Invalid IP address', 'err'); return; }
+    editingId ? updateSpeaker(editingId, name, ip) : addSpeaker(name, ip);
+    closeModal();
+  }
+
+  document.getElementById('modalName').addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('modalIp').focus();
+  });
+  document.getElementById('modalIp').addEventListener('keydown', e => {
+    if (e.key === 'Enter') saveModal();
+  });
+
+  // ── Toast ─────────────────────────────────────────────────────────────
+  let toastTimer;
+  function toast(msg, type = '') {
+    const el      = document.getElementById('toast');
+    el.textContent = msg;
+    el.className   = `show ${type}`.trim();
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { el.className = ''; }, 2800);
+  }
+</script>
+</body>
+</html>
