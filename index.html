@@ -756,6 +756,7 @@
       <input class="url-input" id="urlInput-${id}" type="url"
              placeholder="http://stream.example.com/radio-128" />
       <button class="url-play-btn" onclick="playUrl('${id}')">▶ Play</button>
+      <button class="url-play-btn" onclick="saveStream('${id}')" title="Save to favorites">★</button>
     </div>
 
     <div class="section-label">Source</div>
@@ -957,6 +958,7 @@
     } else if (mode >= 1 && mode <= 29) {
       document.getElementById(`src-${id}-wifi`)?.classList.add('active');
     }
+
   }
 
   // ── Connection badge ──────────────────────────────────────────────────
@@ -1018,6 +1020,19 @@
     const url = input.value.trim();
     if (!isValidUrl(url)) { input.focus(); return; }
     speakerCmd(id, 'setPlayerCmd:play:' + url);
+  }
+
+  function saveStream(id) {
+    const url = document.getElementById('urlInput-' + id).value.trim();
+    if (!isValidUrl(url)) { document.getElementById('urlInput-' + id).focus(); return; }
+    if (favorites.some(f => f.url === url)) { toast('Already in favorites', 'ok'); return; }
+    const titleEl = document.getElementById('sTitle-' + id);
+    const title   = titleEl?.textContent?.trim();
+    const name    = title && title !== '—' ? title : new URL(url).hostname;
+    favorites.push({ name, url });
+    saveState();
+    renderFavDropdowns();
+    toast(`Saved: ${name}`, 'ok');
   }
 
   // ── Source ────────────────────────────────────────────────────────────
