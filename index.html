@@ -88,29 +88,6 @@
     }
     .btn-link:hover { color: var(--accent); }
 
-    /* ── Preset count toggle ── */
-    .preset-count-toggle {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      background: var(--surface2);
-      padding: 3px;
-      border-radius: 8px;
-      border: 1px solid var(--border);
-    }
-    .preset-count-btn {
-      padding: 3px 10px;
-      border-radius: 6px;
-      border: none;
-      background: transparent;
-      color: var(--text-dim);
-      cursor: pointer;
-      font-size: 0.8rem;
-      font-weight: 500;
-      transition: all 0.15s;
-    }
-    .preset-count-btn.active { background: var(--accent); color: #fff; }
-
     /* ── CORS banner ── */
     #corsBanner {
       display: none;
@@ -203,13 +180,7 @@
     }
 
     /* ── Presets section label row ── */
-    .presets-label-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: -6px;
-    }
-    .presets-label-row .section-label { margin-bottom: 0; }
+    .presets-label-row { margin-bottom: -6px; }
 
     /* ── Now playing ── */
     .now-playing {
@@ -803,11 +774,6 @@
 
     <div class="presets-label-row">
       <span class="section-label">Presets</span>
-      <div class="preset-count-toggle">
-        <button class="preset-count-btn" onclick="setPresetCount('${id}', 4, this)">4</button>
-        <button class="preset-count-btn" onclick="setPresetCount('${id}', 6, this)">6</button>
-        <button class="preset-count-btn" onclick="setPresetCount('${id}', 10, this)">10</button>
-      </div>
     </div>
     <div class="preset-grid" id="presets-${id}"></div>
 
@@ -1129,17 +1095,6 @@
       btn.onclick     = () => speakerCmd(id, `MCUKeyShortClick:${i}`);
       grid.appendChild(btn);
     }
-    document.getElementById('card-' + id)
-      ?.querySelectorAll('.preset-count-btn')
-      .forEach(b => b.classList.toggle('active', parseInt(b.textContent) === count));
-  }
-
-  function setPresetCount(id, count) {
-    const s = speakers.find(s => s.id === id);
-    if (!s) return;
-    s.presetCount = count;
-    saveState();
-    buildPresets(id); // handles active button highlighting
   }
 
   // ── Favorites ─────────────────────────────────────────────────────────
