@@ -112,6 +112,20 @@
       padding: 0 0 4px 10px;
     }
 
+    /* ── HTTPS cert banner ── */
+    #httpsCertBanner {
+      display: none;
+      background: #0c1a2e;
+      border: 1px solid #1d4ed8;
+      border-radius: var(--radius);
+      padding: 14px 18px;
+      margin-bottom: 18px;
+      font-size: 0.87rem;
+      line-height: 1.6;
+    }
+    #httpsCertBanner strong { color: #60a5fa; display: block; margin-bottom: 4px; }
+    #httpsCertBanner.show { display: block; }
+
     /* ── Speaker list ── */
     #speakerList { display: grid; gap: 16px; grid-template-columns: 1fr; }
 
@@ -355,6 +369,7 @@
     .preset-grid.count-4  { grid-template-columns: repeat(4,  1fr); }
     .preset-grid.count-6  { grid-template-columns: repeat(6,  1fr); }
     .preset-grid.count-10 { grid-template-columns: repeat(5,  1fr); }
+    .preset-grid.count-12 { grid-template-columns: repeat(6,  1fr); }
 
     .preset-btn {
       background: var(--surface2);
@@ -525,6 +540,7 @@
       #speakerList { grid-template-columns: 1fr !important; }
       .source-grid { grid-template-columns: repeat(2, 1fr); }
       .preset-grid.count-10 { grid-template-columns: repeat(5, 1fr); }
+      .preset-grid.count-12 { grid-template-columns: repeat(6, 1fr); }
       .preset-grid.count-6  { grid-template-columns: repeat(3, 1fr); }
       .np-track { display: none; }
     }
@@ -550,6 +566,16 @@
   &bull; Chrome / Edge: <a href="https://chrome.google.com/webstore/detail/allow-cors-access-control/lhobafahddgcelffkeicbaginigeejlf" target="_blank" rel="noopener noreferrer">Allow CORS</a>
 </div>
 
+<div id="httpsCertBanner">
+  <button class="cors-dismiss" onclick="this.parentElement.classList.remove('show')">✕</button>
+  <strong>🔒 HTTPS — accept the device certificate first</strong>
+  A speaker with HTTPS enabled could not connect. WiiM-based devices (Audio Pro C10 MkII, etc.)
+  use a self-signed certificate that your browser must trust before API calls are allowed.
+  <br><br>
+  &bull; Open <strong>https://&lt;device-ip&gt;/</strong> in a new tab, accept the security warning, then return and refresh.<br>
+  &bull; A CORS browser extension may also be needed if the device does not send CORS headers.
+</div>
+
 <div id="speakerList"></div>
 
 <div id="emptyState">
@@ -565,6 +591,10 @@
     <input id="modalName" type="text" placeholder="Living Room" spellcheck="false" autocomplete="off" />
     <label for="modalIp">IP Address</label>
     <input id="modalIp" type="text" placeholder="192.168.1.x" spellcheck="false" autocomplete="off" inputmode="url" />
+    <div style="display:flex;align-items:center;gap:10px;padding:2px 0">
+      <input type="checkbox" id="modalHttps" style="width:15px;height:15px;cursor:pointer;accent-color:var(--accent);flex-shrink:0">
+      <span style="font-size:0.82rem;color:var(--text-dim)">Use HTTPS <span style="opacity:0.7;font-size:0.78rem">(WiiM / Audio Pro C10 MkII)</span></span>
+    </div>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
       <button class="btn btn-primary" onclick="saveModal()">Save</button>
@@ -703,7 +733,7 @@
       </div>
     </div>
     <div class="speaker-meta">
-      <span class="speaker-ip" id="ip-label-${id}">${e(s.ip)}</span>
+      <span class="speaker-ip" id="ip-label-${id}">${s.useHttps ? '🔒 ' : ''}${e(s.ip)}</span>
       <button class="icon-btn" onclick="openModal('${id}')" title="Edit">✎</button>
       <button class="icon-btn danger" onclick="removeSpeaker('${id}')" title="Remove">✕</button>
     </div>
@@ -808,8 +838,8 @@
   }
 
   // ── Speaker CRUD ──────────────────────────────────────────────────────
-  function addSpeaker(name, ip) {
-    const s = { id: uid(), name, ip, presetCount: 4 };
+  function addSpeaker(name, ip, useHttps = false) {
+    const s = { id: uid(), name, ip, presetCount: 4, useHttps };
     speakers.push(s);
     saveState();
     speakerState[s.id] = { vol: 50, muted: false, infoFetched: false };
@@ -829,15 +859,16 @@
     updateUI();
   }
 
-  function updateSpeaker(id, name, ip) {
+  function updateSpeaker(id, name, ip, useHttps = false) {
     const s = speakers.find(s => s.id === id);
     if (!s) return;
     const ipChanged = s.ip !== ip;
-    s.name = name;
-    s.ip   = ip;
+    s.name     = name;
+    s.ip       = ip;
+    s.useHttps = useHttps;
     saveState();
     document.getElementById('name-'     + id).textContent = name;
-    document.getElementById('ip-label-' + id).textContent = ip;
+    document.getElementById('ip-label-' + id).textContent = (s.useHttps ? '🔒 ' : '') + ip;
     if (ipChanged) { stopPolling(id); startPolling(id); }
   }
 
@@ -867,15 +898,15 @@
   });
 
   // ── API ───────────────────────────────────────────────────────────────
-  function apiUrl(ip, command) {
-    return `http://${ip}/httpapi.asp?command=${encodeURIComponent(command)}`;
+  function apiUrl(ip, command, useHttps = false) {
+    return `${useHttps ? 'https' : 'http'}://${ip}/httpapi.asp?command=${encodeURIComponent(command)}`;
   }
 
   async function speakerCmd(id, command) {
     const s = speakers.find(s => s.id === id);
     if (!s) return;
     try {
-      await fetch(apiUrl(s.ip, command), { mode: 'no-cors', signal: AbortSignal.timeout(CMD_TIMEOUT) });
+      await fetch(apiUrl(s.ip, command, s.useHttps), { mode: 'no-cors', signal: AbortSignal.timeout(CMD_TIMEOUT) });
       const label = command.startsWith('setPlayerCmd:')
         ? command.split(':').slice(1).join(':') : command;
       toast(`${s.name}: ✓ ${label}`, 'ok');
@@ -891,21 +922,27 @@
 
     let text;
     try {
-      const r = await fetch(apiUrl(s.ip, 'getPlayerStatus'), { signal: AbortSignal.timeout(STATUS_TIMEOUT) });
+      const r = await fetch(apiUrl(s.ip, 'getPlayerStatus', s.useHttps), { signal: AbortSignal.timeout(STATUS_TIMEOUT) });
       text = await r.text();
     } catch (e) {
       if (e instanceof TypeError) {
-        // Both CORS blocks and offline devices throw TypeError — probe reachability
-        let reachable = false;
-        try {
-          await fetch(apiUrl(s.ip, 'getPlayerStatus'), {
-            mode: 'no-cors',
-            signal: AbortSignal.timeout(2000)
-          });
-          reachable = true;
-        } catch {}
-        setConnected(id, reachable ? 'cors' : 'error');
-        if (reachable) document.getElementById('corsBanner').classList.add('show');
+        if (s.useHttps) {
+          // HTTPS: could be untrusted self-signed cert or missing CORS headers
+          setConnected(id, 'error');
+          document.getElementById('httpsCertBanner').classList.add('show');
+        } else {
+          // Both CORS blocks and offline devices throw TypeError — probe reachability
+          let reachable = false;
+          try {
+            await fetch(apiUrl(s.ip, 'getPlayerStatus', false), {
+              mode: 'no-cors',
+              signal: AbortSignal.timeout(2000)
+            });
+            reachable = true;
+          } catch {}
+          setConnected(id, reachable ? 'cors' : 'error');
+          if (reachable) document.getElementById('corsBanner').classList.add('show');
+        }
       } else {
         setConnected(id, 'error');
       }
@@ -981,25 +1018,29 @@
   async function fetchDeviceInfo(id) {
     const s = speakers.find(s => s.id === id);
     if (!s) return;
-    try {
-      const r    = await fetch(apiUrl(s.ip, 'getStatus'), { signal: AbortSignal.timeout(STATUS_TIMEOUT) });
-      const text = await r.text();
-      const data = JSON.parse(text.replace(/,\s*([}\]])/g, '$1'));
+    // Try getStatusEx first (WiiM/newer firmware), fall back to getStatus (older LinkPlay)
+    for (const cmd of ['getStatusEx', 'getStatus']) {
+      try {
+        const r    = await fetch(apiUrl(s.ip, cmd, s.useHttps), { signal: AbortSignal.timeout(STATUS_TIMEOUT) });
+        const text = await r.text();
+        const data = JSON.parse(text.replace(/,\s*([}\]])/g, '$1'));
 
-      // Preset slot count
-      const key = parseInt(data.preset_key ?? data.PresetKey ?? -1);
-      if (key > 0 && key !== s.presetCount) {
-        s.presetCount = key <= 4 ? 4 : key <= 6 ? 6 : 10;
-        saveState();
-        buildPresets(id);
-      }
+        // Preset slot count
+        const key = parseInt(data.preset_key ?? data.PresetKey ?? -1);
+        if (key > 0 && key !== s.presetCount) {
+          s.presetCount = key <= 4 ? 4 : key <= 6 ? 6 : key <= 10 ? 10 : 12;
+          saveState();
+          buildPresets(id);
+        }
 
-      // Device name
-      const rawName = data.DeviceName ?? data.devicename ?? '';
-      const devName = hexToStr(rawName) !== '—' ? hexToStr(rawName) : rawName;
-      const nameEl  = document.getElementById('device-name-' + id);
-      if (nameEl && devName && devName !== '—') nameEl.textContent = devName;
-    } catch (_) { /* silent — CORS or offline */ }
+        // Device name — WiiM uses 'ssid', older firmware uses 'DeviceName'/'devicename'
+        const rawName = data.ssid ?? data.DeviceName ?? data.devicename ?? '';
+        const devName = hexToStr(rawName) !== '—' ? hexToStr(rawName) : rawName;
+        const nameEl  = document.getElementById('device-name-' + id);
+        if (nameEl && devName && devName !== '—') nameEl.textContent = devName;
+        return;
+      } catch (_) { /* try next command or give up silently */ }
+    }
   }
 
   // ── Connection badge ──────────────────────────────────────────────────
@@ -1238,7 +1279,8 @@
     const s   = editId ? speakers.find(s => s.id === editId) : null;
     document.getElementById('modalTitle').textContent = s ? 'Edit Speaker' : 'Add Speaker';
     document.getElementById('modalName').value        = s?.name || '';
-    document.getElementById('modalIp').value          = s?.ip   || '';
+    document.getElementById('modalIp').value          = s?.ip        || '';
+    document.getElementById('modalHttps').checked     = s?.useHttps  || false;
     document.getElementById('modal').classList.add('open');
     setTimeout(() => document.getElementById('modalName').focus(), 50);
   }
@@ -1257,7 +1299,8 @@
     const ip   = document.getElementById('modalIp').value.trim();
     if (!ip)              { toast('Enter an IP address', 'err'); return; }
     if (!isValidHost(ip)) { toast('Invalid IP address', 'err'); return; }
-    editingId ? updateSpeaker(editingId, name, ip) : addSpeaker(name, ip);
+    const useHttps = document.getElementById('modalHttps').checked;
+    editingId ? updateSpeaker(editingId, name, ip, useHttps) : addSpeaker(name, ip, useHttps);
     closeModal();
   }
 
